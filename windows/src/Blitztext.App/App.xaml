@@ -1,0 +1,13 @@
+<Application x:Class="Blitztext.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             ShutdownMode="OnExplicitShutdown">
+    <Application.Resources>
+        <!-- Shared brushes -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#3B82F6" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#1E1E22" />
+        <SolidColorBrush x:Key="PanelMutedBrush" Color="#2A2A30" />
+        <SolidColorBrush x:Key="TextBrush" Color="#F2F2F5" />
+        <SolidColorBrush x:Key="TextMutedBrush" Color="#9A9AA5" />
+    </Application.Resources>
+</Application>

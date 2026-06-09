@@ -1,0 +1,19 @@
+# .NET / WPF build output
+[Bb]in/
+[Oo]bj/
+*.user
+
+# Inno Setup installer output
+windows/installer/Output/
+Output/
+
+# Code-signing private keys (never commit). The public .cer is fine to share.
+*.pfx
+*.snk
+
+# Claude Code agent/session data
+.claude/
+
+# OS cruft
+.DS_Store
+Thumbs.db

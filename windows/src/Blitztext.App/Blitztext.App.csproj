@@ -1,0 +1,51 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <UseWPF>true</UseWPF>
+    <!-- WinForms NotifyIcon provides the reliable Windows tray-icon support that
+         WPF lacks; this is the Windows counterpart to the macOS NSStatusItem menubar. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <AssemblyName>Blitztext</AssemblyName>
+    <RootNamespace>Blitztext.App</RootNamespace>
+    <Version>1.5.0</Version>
+    <Product>Blitztext</Product>
+    <Authors>Sebastian Schutzbach</Authors>
+    <Company>Sebastian Schutzbach</Company>
+    <Copyright>© 2026 Sebastian Schutzbach</Copyright>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Resources\blitztext.ico</ApplicationIcon>
+    <!-- DPI awareness is declared in app.manifest (the correct mechanism for WPF).
+         Suppress the WinForms-only analyzer hint that expects ApplicationHighDpiMode. -->
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Microphone capture (WASAPI) -> 16 kHz mono WAV. Replaces macOS AVAudioRecorder. -->
+    <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Blitztext.Core\Blitztext.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Brand icon: embedded for the runtime tray composition (icon + status dot) and window icons. -->
+    <EmbeddedResource Include="Resources\blitztext-icon.png">
+      <LogicalName>blitztext-icon.png</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- Windows-only product: Whisper.net.Runtime ships native libs for every OS/arch.
+       Strip the non-Windows (macOS/Linux) and 32-bit binaries from the publish output. -->
+  <Target Name="TrimNonWindowsRuntimes" AfterTargets="Publish">
+    <RemoveDir Directories="$(PublishDir)runtimes\linux-arm;$(PublishDir)runtimes\linux-arm64;$(PublishDir)runtimes\linux-x64;$(PublishDir)runtimes\macos-arm64;$(PublishDir)runtimes\macos-x64;$(PublishDir)runtimes\win-x86" />
+    <Delete Files="$(PublishDir)ggml-metal.metal" />
+    <Message Importance="high" Text="Trimmed non-Windows whisper runtimes from $(PublishDir)runtimes" />
+  </Target>
+
+</Project>

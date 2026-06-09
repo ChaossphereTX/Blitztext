@@ -1,0 +1,57 @@
+namespace Blitztext.Core.Workflows;
+
+/// <summary>The available Blitztext workflows. Mirrors the macOS WorkflowType.</summary>
+public enum WorkflowType
+{
+    Transcription,
+    LocalTranscription,
+    TextImprover,
+    DampfAblassen,
+    EmojiText,
+}
+
+public static class WorkflowTypeInfo
+{
+    /// <summary>Workflows shown in the main menu (local transcription is reachable via hotkey only).</summary>
+    public static readonly WorkflowType[] MainMenuCases =
+    {
+        WorkflowType.Transcription,
+        WorkflowType.TextImprover,
+        WorkflowType.DampfAblassen,
+        WorkflowType.EmojiText,
+    };
+
+    public static string DisplayName(this WorkflowType type) => type switch
+    {
+        WorkflowType.Transcription => "Blitztext",
+        WorkflowType.LocalTranscription => "Blitztext Lokal",
+        WorkflowType.TextImprover => "Blitztext+",
+        WorkflowType.DampfAblassen => "Blitztext $%&!",
+        WorkflowType.EmojiText => "Blitztext :)",
+        _ => "Blitztext",
+    };
+
+    public static string Subtitle(this WorkflowType type) => type switch
+    {
+        WorkflowType.Transcription => "Sprache rein. Text raus.",
+        WorkflowType.LocalTranscription => "Nur lokal. Kein Server.",
+        WorkflowType.TextImprover => "Geschrieben sprechen.",
+        WorkflowType.DampfAblassen => "Frust rein. Entspannt raus.",
+        WorkflowType.EmojiText => "Text rein. Emojis dazu.",
+        _ => string.Empty,
+    };
+
+    /// <summary>
+    /// Windows hotkey labels. The macOS <c>fn</c> modifier does not exist on Windows,
+    /// so the combos are remapped to Windows-idiomatic Ctrl+Shift+&lt;key&gt; chords.
+    /// </summary>
+    public static string HotkeyLabel(this WorkflowType type) => type switch
+    {
+        WorkflowType.Transcription => "Strg + Umschalt + D",
+        WorkflowType.LocalTranscription => "Strg + Umschalt + L",
+        WorkflowType.TextImprover => "Strg + Umschalt + E",
+        WorkflowType.DampfAblassen => "Strg + Umschalt + R",
+        WorkflowType.EmojiText => "Strg + Umschalt + J",
+        _ => string.Empty,
+    };
+}

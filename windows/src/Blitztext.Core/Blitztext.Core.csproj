@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>Blitztext.Core</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Cross-platform local speech-to-text (whisper.cpp bindings).
+         Replaces the macOS-only WhisperKit/CoreML path. -->
+    <PackageReference Include="Whisper.net" Version="1.7.4" />
+    <PackageReference Include="Whisper.net.Runtime" Version="1.7.4" />
+  </ItemGroup>
+
+</Project>

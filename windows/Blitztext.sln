@@ -1,0 +1,34 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{4EEA6622-CA5C-4198-BC81-A0514C045AF3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blitztext.Core", "src\Blitztext.Core\Blitztext.Core.csproj", "{B4DC927D-D707-4E89-A557-82A58D12BEB0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Blitztext.App", "src\Blitztext.App\Blitztext.App.csproj", "{53CAEB08-0F06-4F97-8CDA-7572F742FB59}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B4DC927D-D707-4E89-A557-82A58D12BEB0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4DC927D-D707-4E89-A557-82A58D12BEB0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4DC927D-D707-4E89-A557-82A58D12BEB0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4DC927D-D707-4E89-A557-82A58D12BEB0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{53CAEB08-0F06-4F97-8CDA-7572F742FB59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{53CAEB08-0F06-4F97-8CDA-7572F742FB59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{53CAEB08-0F06-4F97-8CDA-7572F742FB59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{53CAEB08-0F06-4F97-8CDA-7572F742FB59}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{B4DC927D-D707-4E89-A557-82A58D12BEB0} = {4EEA6622-CA5C-4198-BC81-A0514C045AF3}
+		{53CAEB08-0F06-4F97-8CDA-7572F742FB59} = {4EEA6622-CA5C-4198-BC81-A0514C045AF3}
+	EndGlobalSection
+EndGlobal
