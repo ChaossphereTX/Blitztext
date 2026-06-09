@@ -51,7 +51,15 @@ jobs:
 
       - name: Build + sign installer
         shell: pwsh
-        run: ./windows/installer/build-installer.ps1
+        run: |
+          $v = ''
+          if ('${{ github.ref_type }}' -eq 'tag') { $v = '${{ github.ref_name }}' -replace '^v', '' }
+          if ($v) {
+            Write-Host "Version aus Tag: $v"
+            ./windows/installer/build-installer.ps1 -Version $v
+          } else {
+            ./windows/installer/build-installer.ps1
+          }
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
