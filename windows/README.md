@@ -143,25 +143,23 @@ installiert wird, im **Benutzerkontext** ausrollen. (Für eine maschinenweite In
 „Unbekannter Herausgeber". Für signierte Pakete ein Code-Signing-Zertifikat besorgen; dann
 werden Setup und `Blitztext.exe` mit `signtool` signiert.
 
-## Updates verteilen (In-App-Updater)
+## Updates verteilen (automatisch von GitHub)
 
-Die App aktualisiert sich selbst aus dem Firmennetz – **kein erneutes Installieren pro Rechner**.
+Die App aktualisiert sich **vollautomatisch** – **die Clients konfigurieren nichts**. Die
+Update-Quelle (das öffentliche GitHub-Release-Repo) ist fest eingebaut und **in der Oberfläche
+nicht sichtbar**: der Nutzer sieht nur „Update auf Version X verfügbar", keine URLs/Links.
 
-**Einmal einrichten:** Feed-URL setzen (eine von beiden Varianten):
-- `settings.json` → `"app": { "updateFeedUrl": "https://server/blitztext/latest.json" }`, oder
-- Umgebungsvariable `BLITZTEXT_UPDATE_URL` (hat Vorrang).
+**Ablauf in der App:** Beim Start (und über Tray → „Nach Updates suchen …") liest die App das
+neueste GitHub-Release (`/repos/<owner>/<repo>/releases/latest`), vergleicht die Versionen,
+fragt bei einer neueren kurz nach, lädt die signierte `BlitztextSetup.exe` und installiert sie
+**still** (`/VERYSILENT /RELAUNCH`); danach startet Blitztext neu.
 
-**Update veröffentlichen:** auf den Server legen:
-1. die neue, signierte `BlitztextSetup.exe` (mit erhöhter `Version`),
-2. eine `latest.json`:
-   ```json
-   { "version": "1.6.0", "url": "https://server/blitztext/BlitztextSetup.exe", "notes": "Was ist neu" }
-   ```
+**Update veröffentlichen:** einfach ein höheres Versions-Tag pushen → CI baut, signiert und legt
+das Release an (siehe unten). Mehr ist nicht nötig – kein Anfassen der Client-Rechner.
 
-**Ablauf:** Beim Start (und über Tray → „Nach Updates suchen …") vergleicht die App ihre Version
-mit `latest.json`. Ist eine neuere da, fragt sie kurz nach, lädt das Setup und installiert es
-**still** (`/VERYSILENT /RELAUNCH`); danach startet Blitztext automatisch neu. Mehr ist pro
-Rechner nicht nötig – künftig genügt „neue Dateien auf den Server legen".
+> Das Release-Repo muss **public** sein, damit der Download ohne Token funktioniert. Quelltext
+> enthält keine Secrets. Optionaler Sonderfall: eine eigene `latest.json` per
+> `BLITZTEXT_UPDATE_URL`/`settings.updateFeedUrl` übersteuert die GitHub-Quelle (z. B. offline/Intranet).
 
 ## Code-Signing (intern, self-signed)
 

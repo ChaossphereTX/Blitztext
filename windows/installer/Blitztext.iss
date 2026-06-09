@@ -6,7 +6,7 @@
 ; from within the app into %APPDATA%\Blitztext\models and stay on the local machine.
 
 #define MyAppName "Blitztext"
-#define MyAppVersion "1.5.0"
+#define MyAppVersion "1.6.0"
 #define MyAppPublisher "Sebastian Schutzbach"
 #define MyAppExeName "Blitztext.exe"
 

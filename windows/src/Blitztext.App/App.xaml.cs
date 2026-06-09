@@ -73,19 +73,9 @@ public partial class App : System.Windows.Application
 
     private async Task CheckForUpdatesAsync(bool silentIfNone)
     {
-        string feed = Platform.UpdateService.ResolveFeedUrl(_controller.App.UpdateFeedUrl);
-        if (string.IsNullOrWhiteSpace(feed))
-        {
-            if (!silentIfNone)
-            {
-                MessageBox.Show(
-                    "Es ist kein Update-Server konfiguriert (UpdateFeedUrl).",
-                    "Blitztext – Update", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            return;
-        }
-
-        Platform.UpdateInfo? info = await Platform.UpdateService.CheckAsync(feed);
+        // Default source is the project's public GitHub Releases (no client config); an optional
+        // override feed (settings/env) is honoured by UpdateService if present.
+        Platform.UpdateInfo? info = await Platform.UpdateService.CheckAsync(_controller.App.UpdateFeedUrl);
         if (info == null)
         {
             if (!silentIfNone)
@@ -97,8 +87,9 @@ public partial class App : System.Windows.Application
             return;
         }
 
+        // Only the version is shown — no source URLs / release-note links surface in the UI.
         var result = MessageBox.Show(
-            $"Ein Update auf Version {info.Version} ist verfügbar.\n\n{info.Notes}\n\n" +
+            $"Ein Update auf Version {info.Version} ist verfügbar.\n\n" +
             "Jetzt installieren? Blitztext wird dabei kurz neu gestartet.",
             "Blitztext – Update verfügbar", MessageBoxButton.YesNo, MessageBoxImage.Information);
 

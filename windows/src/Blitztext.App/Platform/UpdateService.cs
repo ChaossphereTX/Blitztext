@@ -3,36 +3,60 @@ using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Blitztext.App.Platform;
 
-/// <summary>An available update described by the server manifest (latest.json).</summary>
+/// <summary>An available update.</summary>
 public sealed class UpdateInfo
 {
-    [JsonPropertyName("version")] public string Version { get; set; } = string.Empty;
-    [JsonPropertyName("url")] public string Url { get; set; } = string.Empty;
-    [JsonPropertyName("notes")] public string? Notes { get; set; }
+    public string Version { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string? Notes { get; set; }
 }
 
 /// <summary>
-/// Self-hosted in-app updater. On startup the app fetches a manifest (latest.json) from the
-/// company server; if it advertises a newer version, the matching installer is downloaded and
-/// run silently, then the app relaunches. No per-machine manual reinstall needed — publishing
-/// an update is just "drop the new BlitztextSetup.exe + latest.json on the server".
+/// Automatic updater. By default it pulls the latest signed installer straight from the project's
+/// public GitHub Releases — clients configure NOTHING. GitHub is the source, but it is never shown
+/// in the UI (no URLs/links surface to the user; only the version number is displayed).
 ///
-/// latest.json format:
-///   { "version": "1.6.0", "url": "https://server/blitztext/BlitztextSetup.exe", "notes": "..." }
+/// The GitHub repo that hosts the release assets must be PUBLIC so the download needs no token.
+/// An optional override (env BLITZTEXT_UPDATE_URL or settings.updateFeedUrl pointing to a
+/// latest.json) is supported for special/offline deployments.
 /// </summary>
 public static class UpdateService
 {
-    private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(30) };
+    // Release source (baked in; not user-visible). Repo must be public for token-less download.
+    private const string Owner = "ChaossphereTX";
+    private const string Repo = "Blitztext";
+    private const string AssetName = "BlitztextSetup.exe";
+
+    private static readonly HttpClient Http = CreateClient();
+
+    private static HttpClient CreateClient()
+    {
+        var h = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
+        // GitHub's API requires a User-Agent.
+        h.DefaultRequestHeaders.UserAgent.ParseAdd("Blitztext-Updater");
+        h.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+        return h;
+    }
 
     public static Version CurrentVersion =>
         Assembly.GetExecutingAssembly().GetName().Version ?? new Version(0, 0, 0, 0);
 
-    /// <summary>Resolve the feed URL: env override → settings → empty (disabled).</summary>
-    public static string ResolveFeedUrl(string? settingsUrl)
+    /// <summary>
+    /// Returns update info if a newer version is available, else null.
+    /// Uses the optional override feed (latest.json) if set, otherwise GitHub Releases.
+    /// </summary>
+    public static async Task<UpdateInfo?> CheckAsync(string? overrideFeedUrl = null, CancellationToken ct = default)
+    {
+        string ov = ResolveOverride(overrideFeedUrl);
+        return string.IsNullOrWhiteSpace(ov)
+            ? await CheckGitHubAsync(ct).ConfigureAwait(false)
+            : await CheckJsonAsync(ov, ct).ConfigureAwait(false);
+    }
+
+    private static string ResolveOverride(string? settingsUrl)
     {
         string env = Environment.GetEnvironmentVariable("BLITZTEXT_UPDATE_URL") ?? string.Empty;
         if (!string.IsNullOrWhiteSpace(env))
@@ -43,33 +67,68 @@ public static class UpdateService
         return (settingsUrl ?? string.Empty).Trim();
     }
 
-    /// <summary>Returns update info if the server advertises a newer version, else null.</summary>
-    public static async Task<UpdateInfo?> CheckAsync(string feedUrl, CancellationToken ct = default)
+    private static async Task<UpdateInfo?> CheckGitHubAsync(CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(feedUrl))
-        {
-            return null;
-        }
-
         try
         {
-            string json = await Http.GetStringAsync(feedUrl, ct).ConfigureAwait(false);
-            var info = JsonSerializer.Deserialize<UpdateInfo>(json);
-            if (info == null || string.IsNullOrWhiteSpace(info.Version) || string.IsNullOrWhiteSpace(info.Url))
+            string url = $"https://api.github.com/repos/{Owner}/{Repo}/releases/latest";
+            string json = await Http.GetStringAsync(url, ct).ConfigureAwait(false);
+
+            using var doc = JsonDocument.Parse(json);
+            JsonElement root = doc.RootElement;
+
+            string tag = root.TryGetProperty("tag_name", out var t) ? t.GetString() ?? "" : "";
+            string version = tag.TrimStart('v', 'V').Trim();
+            string notes = root.TryGetProperty("body", out var b) ? b.GetString() ?? "" : "";
+
+            string? download = null;
+            if (root.TryGetProperty("assets", out var assets) && assets.ValueKind == JsonValueKind.Array)
+            {
+                foreach (JsonElement a in assets.EnumerateArray())
+                {
+                    if (a.TryGetProperty("name", out var n) && string.Equals(n.GetString(), AssetName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        download = a.TryGetProperty("browser_download_url", out var u) ? u.GetString() : null;
+                        break;
+                    }
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(version) || string.IsNullOrWhiteSpace(download))
             {
                 return null;
             }
 
-            if (Version.TryParse(NormalizeVersion(info.Version), out Version? remote) && remote > CurrentVersion)
+            if (Version.TryParse(Normalize(version), out Version? remote) && remote > CurrentVersion)
             {
-                return info;
+                return new UpdateInfo { Version = version, Url = download!, Notes = notes };
             }
 
             return null;
         }
         catch (Exception ex)
         {
-            Log.Write($"update: check failed: {ex.Message}");
+            Log.Write($"update: github check failed: {ex.Message}");
+            return null;
+        }
+    }
+
+    private static async Task<UpdateInfo?> CheckJsonAsync(string feedUrl, CancellationToken ct)
+    {
+        try
+        {
+            string json = await Http.GetStringAsync(feedUrl, ct).ConfigureAwait(false);
+            var info = JsonSerializer.Deserialize<UpdateInfo>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            if (info == null || string.IsNullOrWhiteSpace(info.Version) || string.IsNullOrWhiteSpace(info.Url))
+            {
+                return null;
+            }
+
+            return Version.TryParse(Normalize(info.Version), out Version? remote) && remote > CurrentVersion ? info : null;
+        }
+        catch (Exception ex)
+        {
+            Log.Write($"update: feed check failed: {ex.Message}");
             return null;
         }
     }
@@ -94,8 +153,8 @@ public static class UpdateService
     }
 
     /// <summary>
-    /// Launch the downloaded installer silently and exit so it can replace the running files.
-    /// The installer relaunches the app afterwards (via the /RELAUNCH switch).
+    /// Launch the downloaded installer silently and exit so it can replace the running files;
+    /// the installer relaunches the app afterwards (/RELAUNCH).
     /// </summary>
     public static void ApplyAndExit(string setupPath)
     {
@@ -110,12 +169,10 @@ public static class UpdateService
         System.Windows.Application.Current.Shutdown();
     }
 
-    private static string NormalizeVersion(string v)
+    private static string Normalize(string v)
     {
-        // Accept "1.6" or "1.6.0" or "1.6.0.0".
         v = v.Trim();
-        int parts = v.Split('.').Length;
-        return parts switch
+        return (v.Split('.').Length) switch
         {
             1 => v + ".0.0.0",
             2 => v + ".0.0",
