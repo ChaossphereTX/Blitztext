@@ -92,8 +92,9 @@ public partial class SettingsWindow : Window
         HotkeyList.Children.Clear();
         foreach (WorkflowType type in WorkflowTypeInfo.MainMenuCases)
         {
+            string label = type.HotkeyLabel();
             var panel = new DockPanel { Margin = new Thickness(0, 0, 0, 2) };
-            var key = new TextBlock { Text = type.HotkeyLabel(), FontFamily = new System.Windows.Media.FontFamily("Consolas"), Opacity = 0.75, Width = 200 };
+            var key = new TextBlock { Text = string.IsNullOrEmpty(label) ? "über Menü" : label, FontFamily = new System.Windows.Media.FontFamily("Consolas"), Opacity = 0.75, Width = 200 };
             var name = new TextBlock { Text = _controller.DisplayName(type), FontWeight = FontWeights.SemiBold };
             DockPanel.SetDock(key, Dock.Left);
             panel.Children.Add(key);

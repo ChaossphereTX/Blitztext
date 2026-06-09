@@ -68,18 +68,21 @@ public partial class PopoverWindow : Window
             FontSize = 11,
             TextWrapping = TextWrapping.Wrap,
         };
-        var hotkey = new TextBlock
-        {
-            Text = type.HotkeyLabel(),
-            Foreground = (Brush)FindResource("TextMutedBrush"),
-            FontSize = 10,
-            Margin = new Thickness(0, 4, 0, 0),
-        };
-
         var content = new StackPanel();
         content.Children.Add(title);
         content.Children.Add(subtitle);
-        content.Children.Add(hotkey);
+
+        string hotkeyLabel = type.HotkeyLabel();
+        if (!string.IsNullOrEmpty(hotkeyLabel))
+        {
+            content.Children.Add(new TextBlock
+            {
+                Text = hotkeyLabel,
+                Foreground = (Brush)FindResource("TextMutedBrush"),
+                FontSize = 10,
+                Margin = new Thickness(0, 4, 0, 0),
+            });
+        }
 
         var button = new Button
         {

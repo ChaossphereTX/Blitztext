@@ -10,17 +10,19 @@ optional umgeschrieben und per simuliertem `Strg+V` in das zuvor aktive Fenster 
 
 ## Funktionen
 
-| Workflow | Hotkey (Windows) | Beschreibung |
+| Workflow | Start | Beschreibung |
 |---|---|---|
-| **Blitztext** | `Strg+Umschalt+D` | Sprache → Text (OpenAI Whisper oder lokal) |
-| **Blitztext+** | `Strg+Umschalt+E` | Transkript → sauber umgeschriebener Text (GPT-4o-mini) |
-| **Blitztext $%&!** | `Strg+Umschalt+R` | Frust-Diktat → ruhige, sachliche Nachricht (GPT-4o) |
-| **Blitztext :)** | `Strg+Umschalt+J` | Transkript + passende Emojis |
-| **Blitztext Lokal** | `Strg+Umschalt+L` | Transkription rein offline (whisper.cpp) |
+| **Blitztext** | `Strg + Umschalt` (halten) | Sprache → Text (OpenAI Whisper oder lokal) |
+| **Blitztext+** | Tray-Menü | Transkript → sauber umgeschriebener Text (GPT-4o-mini) |
+| **Blitztext $%&!** | Tray-Menü | Frust-Diktat → ruhige, sachliche Nachricht (GPT-4o) |
+| **Blitztext :)** | Tray-Menü | Transkript + passende Emojis |
 | Abbrechen | `Esc` | Laufende Aufnahme/Verarbeitung abbrechen |
 
-> Der macOS-`fn`-Modifier existiert auf Windows nicht – die Kürzel sind auf `Strg+Umschalt`-Chords
-> abgebildet. Modus **Halten** (Push-to-talk) oder **Drücken** (Umschalten) ist in den Einstellungen wählbar.
+> Nur die **Transkription** hat einen globalen Hotkey: **`Strg + Umschalt` allein gedrückt halten**,
+> sprechen, loslassen (Push-to-talk). Damit normale `Strg+Umschalt`-Shortcuts (z. B. Textauswahl)
+> nicht stören, startet die Aufnahme erst nach ~250 ms reinem Halten und bricht ab, sobald eine
+> weitere Taste dazukommt. Die übrigen Workflows startest du im Tray-Popover. Modus **Halten** oder
+> **Drücken** ist in den Einstellungen wählbar.
 
 ## Architektur
 

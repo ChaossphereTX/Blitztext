@@ -7,31 +7,35 @@ public enum HotkeyEventKind { Down, Up, Cancel }
 public sealed record HotkeyEvent(HotkeyEventKind Kind, WorkflowType Type);
 
 /// <summary>
-/// Global hotkeys via a WH_KEYBOARD_LL low-level keyboard hook. This is the Windows
-/// counterpart to the macOS NSEvent global monitors. The macOS <c>fn</c> modifier does not
-/// exist on Windows, so the chords are Ctrl+Shift+&lt;trigger&gt;:
-///   Space → Transcription, E → TextImprover, R → DampfAblassen, J → EmojiText, L → Local.
-/// Escape raises a cancel event. Down/Up events drive both hold and toggle modes.
-/// The hook is installed on the WPF UI thread (which already pumps messages); the callback
-/// is lightweight and the real work runs asynchronously, so input is never blocked.
+/// Global hotkey for the transcription workflow via a WH_KEYBOARD_LL hook. The trigger is
+/// <b>Ctrl+Shift held alone</b> (the Windows analogue of the macOS fn+Shift push-to-talk).
+///
+/// Because Ctrl+Shift is also used by many normal shortcuts (Ctrl+Shift+Arrow, Ctrl+Shift+Esc, …),
+/// two safeguards apply:
+///   1. The modifier keys are never swallowed — normal Ctrl+Shift shortcuts keep working.
+///   2. Recording only starts when Ctrl+Shift are held <i>alone</i> for ~250 ms with no other key.
+///      If any other key is pressed (i.e. it was a real shortcut), the pending/active trigger is
+///      cancelled. Escape cancels an active workflow.
+///
+/// The other workflows (Blitztext+, $%&!, :), Lokal) have no global hotkey — they are started from
+/// the tray popover.
 /// </summary>
 public sealed class GlobalHotkeyService : IDisposable
 {
+    private const int HoldDelayMs = 250;
     private const int VkEscape = 0x1B;
 
-    private static readonly Dictionary<uint, WorkflowType> TriggerKeys = new()
-    {
-        [0x44] = WorkflowType.Transcription,      // D (Diktat) – Space was a poor choice
-        [0x45] = WorkflowType.TextImprover,       // E
-        [0x52] = WorkflowType.DampfAblassen,      // R
-        [0x4A] = WorkflowType.EmojiText,          // J
-        [0x4C] = WorkflowType.LocalTranscription, // L
-    };
+    private static bool IsCtrl(uint vk) => vk is 0x11 or 0xA2 or 0xA3;   // VK_CONTROL / L / R
+    private static bool IsShift(uint vk) => vk is 0x10 or 0xA0 or 0xA1;  // VK_SHIFT / L / R
 
     private readonly NativeMethods.LowLevelKeyboardProc _proc;
     private IntPtr _hookHandle = IntPtr.Zero;
-    private WorkflowType? _activeCombo;
-    private uint _activeTriggerKey;
+
+    private bool _ctrl;
+    private bool _shift;
+    private bool _otherKeyDown;   // a non-modifier key was pressed during this Ctrl+Shift session
+    private bool _active;         // a Down event has been raised (recording in progress)
+    private System.Threading.Timer? _pendingTimer;
 
     public event Action<HotkeyEvent>? HotkeyFired;
 
@@ -58,6 +62,8 @@ public sealed class GlobalHotkeyService : IDisposable
             NativeMethods.UnhookWindowsHookEx(_hookHandle);
             _hookHandle = IntPtr.Zero;
         }
+
+        CancelPendingTimer();
     }
 
     private IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
@@ -71,53 +77,102 @@ public sealed class GlobalHotkeyService : IDisposable
         var data = System.Runtime.InteropServices.Marshal.PtrToStructure<NativeMethods.KBDLLHOOKSTRUCT>(lParam);
         uint vk = data.vkCode;
 
-        bool isKeyDown = msg is NativeMethods.WM_KEYDOWN or NativeMethods.WM_SYSKEYDOWN;
-        bool isKeyUp = msg is NativeMethods.WM_KEYUP or NativeMethods.WM_SYSKEYUP;
+        bool isDown = msg is NativeMethods.WM_KEYDOWN or NativeMethods.WM_SYSKEYDOWN;
+        bool isUp = msg is NativeMethods.WM_KEYUP or NativeMethods.WM_SYSKEYUP;
 
-        if (isKeyDown)
+        if (isDown)
         {
             if (vk == VkEscape)
             {
-                _activeCombo = null;
-                _activeTriggerKey = 0;
+                Disqualify();
                 HotkeyFired?.Invoke(new HotkeyEvent(HotkeyEventKind.Cancel, WorkflowType.Transcription));
-                return NativeMethods.CallNextHookEx(_hookHandle, nCode, wParam, lParam);
             }
-
-            if (_activeCombo == null && TriggerKeys.TryGetValue(vk, out WorkflowType type) && CtrlShiftHeld())
+            else if (IsCtrl(vk))
             {
-                _activeCombo = type;
-                _activeTriggerKey = vk;
-                HotkeyFired?.Invoke(new HotkeyEvent(HotkeyEventKind.Down, type));
-                return (IntPtr)1; // swallow so the trigger letter is not typed into the target app
+                _ctrl = true;
+                MaybeSchedule();
             }
-
-            // Swallow auto-repeat of the active trigger while held.
-            if (_activeCombo != null && vk == _activeTriggerKey)
+            else if (IsShift(vk))
             {
-                return (IntPtr)1;
+                _shift = true;
+                MaybeSchedule();
+            }
+            else
+            {
+                // Any non-modifier key means this is a normal shortcut, not push-to-talk.
+                _otherKeyDown = true;
+                Disqualify();
             }
         }
-        else if (isKeyUp)
+        else if (isUp)
         {
-            if (_activeCombo != null && vk == _activeTriggerKey)
+            if (IsCtrl(vk))
             {
-                WorkflowType type = _activeCombo.Value;
-                _activeCombo = null;
-                _activeTriggerKey = 0;
-                HotkeyFired?.Invoke(new HotkeyEvent(HotkeyEventKind.Up, type));
-                return (IntPtr)1;
+                _ctrl = false;
+                OnModifierReleased();
+            }
+            else if (IsShift(vk))
+            {
+                _shift = false;
+                OnModifierReleased();
             }
         }
 
+        // Never swallow keys — Ctrl/Shift must keep working as normal modifiers.
         return NativeMethods.CallNextHookEx(_hookHandle, nCode, wParam, lParam);
     }
 
-    private static bool CtrlShiftHeld()
+    private void MaybeSchedule()
     {
-        bool ctrl = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_CONTROL_STATE) & 0x8000) != 0;
-        bool shift = (NativeMethods.GetAsyncKeyState(NativeMethods.VK_SHIFT) & 0x8000) != 0;
-        return ctrl && shift;
+        if (_ctrl && _shift && !_active && !_otherKeyDown && _pendingTimer == null)
+        {
+            _pendingTimer = new System.Threading.Timer(_ => FirePending(), null, HoldDelayMs, System.Threading.Timeout.Infinite);
+        }
+    }
+
+    private void FirePending()
+    {
+        CancelPendingTimer();
+        if (_ctrl && _shift && !_otherKeyDown && !_active)
+        {
+            _active = true;
+            HotkeyFired?.Invoke(new HotkeyEvent(HotkeyEventKind.Down, WorkflowType.Transcription));
+        }
+    }
+
+    private void OnModifierReleased()
+    {
+        // Releasing either modifier ends the gesture.
+        if (_active)
+        {
+            _active = false;
+            HotkeyFired?.Invoke(new HotkeyEvent(HotkeyEventKind.Up, WorkflowType.Transcription));
+        }
+        else
+        {
+            CancelPendingTimer();
+        }
+
+        if (!_ctrl && !_shift)
+        {
+            _otherKeyDown = false;
+        }
+    }
+
+    private void Disqualify()
+    {
+        CancelPendingTimer();
+        if (_active)
+        {
+            _active = false;
+            HotkeyFired?.Invoke(new HotkeyEvent(HotkeyEventKind.Cancel, WorkflowType.Transcription));
+        }
+    }
+
+    private void CancelPendingTimer()
+    {
+        _pendingTimer?.Dispose();
+        _pendingTimer = null;
     }
 
     public void Dispose() => Stop();

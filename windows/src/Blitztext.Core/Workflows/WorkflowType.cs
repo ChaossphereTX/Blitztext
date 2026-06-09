@@ -42,16 +42,12 @@ public static class WorkflowTypeInfo
     };
 
     /// <summary>
-    /// Windows hotkey labels. The macOS <c>fn</c> modifier does not exist on Windows,
-    /// so the combos are remapped to Windows-idiomatic Ctrl+Shift+&lt;key&gt; chords.
+    /// Windows hotkey labels. Only the transcription workflow has a global hotkey
+    /// (Ctrl+Shift held alone); the other workflows are started from the tray popover.
     /// </summary>
     public static string HotkeyLabel(this WorkflowType type) => type switch
     {
-        WorkflowType.Transcription => "Strg + Umschalt + D",
-        WorkflowType.LocalTranscription => "Strg + Umschalt + L",
-        WorkflowType.TextImprover => "Strg + Umschalt + E",
-        WorkflowType.DampfAblassen => "Strg + Umschalt + R",
-        WorkflowType.EmojiText => "Strg + Umschalt + J",
+        WorkflowType.Transcription => "Strg + Umschalt",
         _ => string.Empty,
     };
 }
