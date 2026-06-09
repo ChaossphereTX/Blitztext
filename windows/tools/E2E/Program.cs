@@ -25,6 +25,12 @@ internal static class Program
             return 0;
         }
 
+        if (modelName == "update")
+        {
+            DumpUpdate();
+            return 0;
+        }
+
         int failures = 0;
 
         Console.WriteLine("=== Blitztext Windows E2E ===\n");
@@ -59,6 +65,40 @@ internal static class Program
             Console.WriteLine($"   ❌ Fehler: {ex.Message}\n");
             return 1;
         }
+    }
+
+    private static void DumpUpdate()
+    {
+        Console.WriteLine($"App-Version (CurrentVersion): {Blitztext.App.Platform.UpdateService.CurrentVersion}");
+
+        using var http = new System.Net.Http.HttpClient();
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("Blitztext-Updater");
+        http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+
+        // Token-less public API probe (same endpoint the app uses).
+        string json = http.GetStringAsync("https://api.github.com/repos/ChaossphereTX/Blitztext/releases/latest")
+            .GetAwaiter().GetResult();
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        string tag = root.GetProperty("tag_name").GetString() ?? "";
+        string assetUrl = root.GetProperty("assets")[0].GetProperty("browser_download_url").GetString() ?? "";
+        Console.WriteLine($"GitHub latest: tag={tag}");
+        Console.WriteLine($"  Asset-URL:   {assetUrl}");
+
+        // Confirm the asset is downloadable without any token.
+        var req = new System.Net.Http.HttpRequestMessage(System.Net.Http.HttpMethod.Get, assetUrl);
+        req.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(0, 1023);
+        using var resp = http.Send(req);
+        Console.WriteLine($"  Download ohne Token: HTTP {(int)resp.StatusCode} ({resp.StatusCode})");
+
+        // What the real service decides for this machine.
+        var info = Blitztext.App.Platform.UpdateService.CheckAsync().GetAwaiter().GetResult();
+        Console.WriteLine(info == null
+            ? "UpdateService.CheckAsync -> kein Update (App ist aktuell)"
+            : $"UpdateService.CheckAsync -> Update auf {info.Version} verfuegbar");
+
+        bool higherWouldTrigger = new Version("99.0.0.0") > Blitztext.App.Platform.UpdateService.CurrentVersion;
+        Console.WriteLine($"Vergleichslogik: hoehere Version wuerde erkannt = {higherWouldTrigger}");
     }
 
     private static void DumpTrayIcons()
