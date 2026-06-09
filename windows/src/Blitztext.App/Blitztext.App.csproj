@@ -12,7 +12,7 @@
     <UseWindowsForms>true</UseWindowsForms>
     <AssemblyName>Blitztext</AssemblyName>
     <RootNamespace>Blitztext.App</RootNamespace>
-    <Version>1.6.0</Version>
+    <Version>1.6.1</Version>
     <Product>Blitztext</Product>
     <Authors>Sebastian Schutzbach</Authors>
     <Company>Sebastian Schutzbach</Company>
