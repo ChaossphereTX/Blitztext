@@ -1,0 +1,73 @@
+name: Release
+
+# Builds, signs and publishes the Windows installer.
+# GitHub is used only as the internal build/artifact backend for the team — it is NOT referenced
+# anywhere in the app. End users update from the company server (see windows/README.md): an admin
+# takes BlitztextSetup.exe from the GitHub Release and places it (with latest.json) on that server.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # needed to create the GitHub Release
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Import code-signing certificate
+        shell: pwsh
+        env:
+          PFX_B64: ${{ secrets.CODESIGN_PFX_BASE64 }}
+          PFX_PW: ${{ secrets.CODESIGN_PFX_PASSWORD }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:PFX_B64)) {
+            Write-Host "::warning::Kein CODESIGN_PFX_BASE64-Secret gesetzt - Build bleibt unsigniert."
+            exit 0
+          }
+          $pfx = Join-Path $env:RUNNER_TEMP 'codesign.pfx'
+          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PFX_B64))
+          $pw = ConvertTo-SecureString $env:PFX_PW -AsPlainText -Force
+          Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pw | Out-Null
+          Remove-Item $pfx -Force
+          Write-Host "Signaturzertifikat importiert."
+
+      - name: Build + sign installer
+        shell: pwsh
+        run: ./windows/installer/build-installer.ps1
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BlitztextSetup
+          path: windows/installer/Output/BlitztextSetup.exe
+          if-no-files-found: error
+
+      - name: Publish GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: windows/installer/Output/BlitztextSetup.exe
+          generate_release_notes: true
+          body: |
+            Interner Build. **Nicht** direkt an Endnutzer verteilen, ohne `latest.json` auf dem
+            Firmen-Server zu aktualisieren — die App aktualisiert sich ausschließlich von dort.
+
+            Schritt zum Veröffentlichen:
+            1. `BlitztextSetup.exe` aus diesem Release auf den Firmen-Server laden.
+            2. Dort `latest.json` aktualisieren:
+               `{ "version": "<diese Version>", "url": "https://<firmen-server>/BlitztextSetup.exe", "notes": "..." }`
