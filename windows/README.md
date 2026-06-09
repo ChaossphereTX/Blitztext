@@ -187,6 +187,30 @@ Richtlinien für öffentliche Schlüssel* → Zertifikat in beide Speicher impor
 > öffentlichen CA (Sectigo/DigiCert/GlobalSign/SSL.com/Certum; Schlüssel auf Token/Cloud-HSM,
 > EV = sofortiges SmartScreen-Vertrauen). Der Build signiert dann analog mit diesem Zertifikat.
 
+## Releases über GitHub Actions (CI – nur intern)
+
+GitHub dient ausschließlich als **interne Build-/Ablage-Maschine** für das Team. **Die App
+referenziert GitHub nirgends** – Endnutzer sehen davon nichts (der Updater zeigt auf den
+Firmen-Server, siehe oben).
+
+**Einmalig:** Signatur-Zertifikat als GitHub-Secrets hinterlegen (lokal ausführen):
+```powershell
+windows\signing\new-cert.ps1          # falls noch nicht geschehen
+windows\signing\set-ci-secrets.ps1    # legt CODESIGN_PFX_BASE64 + CODESIGN_PFX_PASSWORD an
+```
+
+**Release bauen:** ein Versions-Tag pushen – der Workflow `.github/workflows/release.yml`
+baut, **signiert** und hängt `BlitztextSetup.exe` an ein GitHub-Release:
+```powershell
+git tag v1.6.0; git push origin v1.6.0
+```
+(Ohne Tag lässt sich der Workflow auch manuell starten – „Run workflow" / `gh workflow run release.yml` –
+und legt das Setup als Build-Artefakt ab.)
+
+**An die Nutzer ausliefern (ohne dass GitHub sichtbar wird):** Die signierte `BlitztextSetup.exe`
+aus dem Release auf den **Firmen-Server** laden und dort `latest.json` aktualisieren. Die Clients
+aktualisieren sich ausschließlich von dort – GitHub taucht in der App nie auf.
+
 ## Diagnose / Protokoll (für Admins)
 
 Die App schreibt ein dauerhaftes Protokoll für die Fehlersuche:
