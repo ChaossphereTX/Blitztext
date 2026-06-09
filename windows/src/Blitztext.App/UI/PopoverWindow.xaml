@@ -11,8 +11,8 @@
         <StackPanel>
             <!-- Header -->
             <Grid Margin="0,0,0,12">
-                <TextBlock Text="Blitztext" Foreground="{StaticResource TextBrush}"
-                           FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+                <TextBlock x:Name="HeaderText" Text="Blitztext" Foreground="{StaticResource TextBrush}"
+                           FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
                 <Button x:Name="SettingsButton" Content="⚙"  HorizontalAlignment="Right"
                         Foreground="{StaticResource TextMutedBrush}" Background="Transparent"
                         BorderThickness="0" FontSize="16" Cursor="Hand" Click="OnSettingsClick" />

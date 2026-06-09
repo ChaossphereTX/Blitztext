@@ -17,6 +17,9 @@ public partial class PopoverWindow : Window
         _controller = controller;
         InitializeComponent();
 
+        Version v = Platform.UpdateService.CurrentVersion;
+        HeaderText.Text = $"Held - Blitztext - V{v.Major}.{v.Minor}.{v.Build}";
+
         _controller.StatusChanged += OnStatusChanged;
         _controller.LevelChanged += OnLevelChanged;
         Deactivated += (_, _) => Hide();
