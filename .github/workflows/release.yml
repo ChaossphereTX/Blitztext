@@ -1,6 +1,6 @@
 name: Release
 
-# Builds, signs and publishes the Windows installer.
+# Builds and publishes the Windows installer (unsigned — internal distribution).
 # GitHub is used only as the internal build/artifact backend for the team — it is NOT referenced
 # anywhere in the app. End users update from the company server (see windows/README.md): an admin
 # takes BlitztextSetup.exe from the GitHub Release and places it (with latest.json) on that server.
@@ -29,27 +29,7 @@ jobs:
       - name: Install Inno Setup
         run: choco install innosetup -y --no-progress
 
-      - name: Import code-signing certificate
-        id: signcert
-        shell: pwsh
-        env:
-          PFX_B64: ${{ secrets.CODESIGN_PFX_BASE64 }}
-          PFX_PW: ${{ secrets.CODESIGN_PFX_PASSWORD }}
-        run: |
-          if ([string]::IsNullOrWhiteSpace($env:PFX_B64)) {
-            Write-Host "::warning::Kein CODESIGN_PFX_BASE64-Secret gesetzt - Build bleibt unsigniert, kein Release."
-            "signed=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-            exit 0
-          }
-          $pfx = Join-Path $env:RUNNER_TEMP 'codesign.pfx'
-          [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PFX_B64))
-          $pw = ConvertTo-SecureString $env:PFX_PW -AsPlainText -Force
-          Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $pw | Out-Null
-          Remove-Item $pfx -Force
-          "signed=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-          Write-Host "Signaturzertifikat importiert."
-
-      - name: Build + sign installer
+      - name: Build installer
         shell: pwsh
         run: |
           $v = ''
@@ -68,8 +48,8 @@ jobs:
           path: windows/installer/Output/BlitztextSetup.exe
           if-no-files-found: error
 
-      - name: Publish GitHub Release (on tag, only if signed)
-        if: startsWith(github.ref, 'refs/tags/') && steps.signcert.outputs.signed == 'true'
+      - name: Publish GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: windows/installer/Output/BlitztextSetup.exe

@@ -94,9 +94,8 @@ dotnet publish src/Blitztext.App/Blitztext.App.csproj -c Release -r win-x64 --se
 
 Verteilt wird der **gesamte `publish/`-Ordner**: `Blitztext.exe` plus der `runtimes/`-Ordner mit
 den nativen whisper.cpp-Bibliotheken (diese werden bewusst neben der Exe gehalten, damit Whisper.net
-sie zur Laufzeit findet). Für eine signierte Verteilung
-müsste – analog zur macOS-Notarisierung – ein Windows-Code-Signing-Zertifikat (`signtool`)
-ergänzt werden; das ist hier (wie im macOS-Original) bewusst nicht enthalten.
+sie zur Laufzeit findet). Die Builds sind **unsigniert** (interne Verteilung) – eine
+Code-Signierung ist optional und hier bewusst nicht enthalten.
 
 ## Erste Schritte in der App
 
@@ -139,9 +138,10 @@ Eignet sich für Intune (Win32-App), GPO-Login-Skripte oder Software-Verteilung.
 installiert wird, im **Benutzerkontext** ausrollen. (Für eine maschinenweite Installation nach
 `Program Files` ließe sich das Skript auf `PrivilegesRequired=admin` + `{autopf}` umstellen.)
 
-**SmartScreen:** Die EXE ist unsigniert → bei manueller Installation erscheint einmal
-„Unbekannter Herausgeber". Für signierte Pakete ein Code-Signing-Zertifikat besorgen; dann
-werden Setup und `Blitztext.exe` mit `signtool` signiert.
+**SmartScreen:** Die EXE ist **unsigniert**. Bei automatischer Verteilung (GPO/Intune/Datei-Kopie)
+und beim **In-App-Update** erscheint **keine** Warnung. Nur wenn jemand die Setup-Datei manuell aus
+einem Browser herunterlädt und doppelklickt, zeigt Windows einmalig „Unbekannter Herausgeber"
+(→ „Weitere Informationen → Trotzdem ausführen").
 
 ## Updates verteilen (automatisch von GitHub)
 
@@ -151,63 +151,36 @@ nicht sichtbar**: der Nutzer sieht nur „Update auf Version X verfügbar", kein
 
 **Ablauf in der App:** Beim Start (und über Tray → „Nach Updates suchen …") liest die App das
 neueste GitHub-Release (`/repos/<owner>/<repo>/releases/latest`), vergleicht die Versionen,
-fragt bei einer neueren kurz nach, lädt die signierte `BlitztextSetup.exe` und installiert sie
+fragt bei einer neueren kurz nach, lädt die `BlitztextSetup.exe` und installiert sie
 **still** (`/VERYSILENT /RELAUNCH`); danach startet Blitztext neu.
 
-**Update veröffentlichen:** einfach ein höheres Versions-Tag pushen → CI baut, signiert und legt
-das Release an (siehe unten). Mehr ist nicht nötig – kein Anfassen der Client-Rechner.
+**Update veröffentlichen:** einfach ein höheres Versions-Tag pushen → CI baut das Release (siehe
+unten). Mehr ist nicht nötig – kein Anfassen der Client-Rechner.
 
 > Das Release-Repo muss **public** sein, damit der Download ohne Token funktioniert. Quelltext
 > enthält keine Secrets. Optionaler Sonderfall: eine eigene `latest.json` per
 > `BLITZTEXT_UPDATE_URL`/`settings.updateFeedUrl` übersteuert die GitHub-Quelle (z. B. offline/Intranet).
 
-## Code-Signing (intern, self-signed)
+## Releases über GitHub Actions (CI)
 
-Damit auf Firmenrechnern keine „Unbekannter-Herausgeber"-Warnung erscheint, werden `Blitztext.exe`
-und `BlitztextSetup.exe` mit einem **eigenen Code-Signing-Zertifikat** signiert (kostenlos, da rein intern).
+GitHub dient nur als interne Build-/Ablage-Maschine; **in der App ist GitHub nicht sichtbar**
+(der Updater zeigt nur die Versionsnummer). Die Builds sind **unsigniert** – für interne
+Verteilung und das lautlose Auto-Update ausreichend.
 
+**Update veröffentlichen:** ein höheres Versions-Tag pushen – der Workflow
+`.github/workflows/release.yml` baut den Installer und hängt ihn an ein öffentliches GitHub-Release:
 ```powershell
-windows\signing\new-cert.ps1     # einmalig: Zertifikat erzeugen + Blitztext-CodeSigning.cer exportieren
-windows\installer\build-installer.ps1   # baut + signiert exe und Setup automatisch
+git tag v1.6.1; git push origin v1.6.1
 ```
+Die Versionsnummer kommt automatisch aus dem Tag. Danach **ziehen alle Clients das Update
+automatisch** – kein Anfassen der Rechner, keine Server-Pflege. (Der Workflow lässt sich ohne Tag
+auch manuell starten und legt das Setup als Build-Artefakt ab.)
 
-**Auf allen Firmenrechnern vertrauen (zentral per GPO/Intune):** das exportierte
-`windows\signing\Blitztext-CodeSigning.cer` in diese Zertifikatspeicher verteilen:
-- **Vertrauenswürdige Stammzertifizierungsstellen** (Trusted Root) und
-- **Vertrauenswürdige Herausgeber** (Trusted Publishers).
+**Erst-Installation:** die `BlitztextSetup.exe` einmalig auf den Rechnern installieren (manuell,
+per GPO/Intune oder Datei-Kopie). Ab dann übernimmt das Auto-Update.
 
-GPO: *Computerkonfiguration → Richtlinien → Windows-Einstellungen → Sicherheitseinstellungen →
-Richtlinien für öffentliche Schlüssel* → Zertifikat in beide Speicher importieren. (Intune: ein
-„Trusted Certificate"-Profil je Speicher.) Danach gilt die Signatur fleet-weit als vertrauenswürdig
-– keine SmartScreen-/Herausgeber-Warnung.
-
-> Für Verteilung **außerhalb** der Firma bräuchtet ihr stattdessen ein Zertifikat einer
-> öffentlichen CA (Sectigo/DigiCert/GlobalSign/SSL.com/Certum; Schlüssel auf Token/Cloud-HSM,
-> EV = sofortiges SmartScreen-Vertrauen). Der Build signiert dann analog mit diesem Zertifikat.
-
-## Releases über GitHub Actions (CI – nur intern)
-
-GitHub dient ausschließlich als **interne Build-/Ablage-Maschine** für das Team. **Die App
-referenziert GitHub nirgends** – Endnutzer sehen davon nichts (der Updater zeigt auf den
-Firmen-Server, siehe oben).
-
-**Einmalig:** Signatur-Zertifikat als GitHub-Secrets hinterlegen (lokal ausführen):
-```powershell
-windows\signing\new-cert.ps1          # falls noch nicht geschehen
-windows\signing\set-ci-secrets.ps1    # legt CODESIGN_PFX_BASE64 + CODESIGN_PFX_PASSWORD an
-```
-
-**Release bauen:** ein Versions-Tag pushen – der Workflow `.github/workflows/release.yml`
-baut, **signiert** und hängt `BlitztextSetup.exe` an ein GitHub-Release:
-```powershell
-git tag v1.6.0; git push origin v1.6.0
-```
-(Ohne Tag lässt sich der Workflow auch manuell starten – „Run workflow" / `gh workflow run release.yml` –
-und legt das Setup als Build-Artefakt ab.)
-
-**An die Nutzer ausliefern (ohne dass GitHub sichtbar wird):** Die signierte `BlitztextSetup.exe`
-aus dem Release auf den **Firmen-Server** laden und dort `latest.json` aktualisieren. Die Clients
-aktualisieren sich ausschließlich von dort – GitHub taucht in der App nie auf.
+> Optional nachrüstbar: Code-Signierung (verschwindet die einmalige „Unbekannter Herausgeber"-
+> Warnung bei manueller Browser-Installation). Aktuell bewusst weggelassen.
 
 ## Diagnose / Protokoll (für Admins)
 
