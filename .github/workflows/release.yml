@@ -50,7 +50,7 @@ jobs:
 
       - name: Publish GitHub Release (on tag)
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: windows/installer/Output/BlitztextSetup.exe
           generate_release_notes: true
