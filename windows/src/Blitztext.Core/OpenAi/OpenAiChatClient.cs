@@ -16,9 +16,9 @@ internal static class RewriteModelExtensions
 {
     public static string ApiName(this RewriteModel model) => model switch
     {
-        RewriteModel.FastEdit => "gpt-4o-mini",
-        RewriteModel.RageMode => "gpt-4o",
-        _ => "gpt-4o-mini",
+        RewriteModel.FastEdit => "gpt-6-luna",
+        RewriteModel.RageMode => "gpt-6.1-terra",
+        _ => "gpt-6-luna",
     };
 }
 

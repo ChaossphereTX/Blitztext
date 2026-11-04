@@ -13,8 +13,8 @@ Die App lebt im **System-Tray** und arbeitet wahlweise **lokal/offline** (whispe
 | Workflow | Start | Beschreibung |
 |---|---|---|
 | **Blitztext** | `Strg + Umschalt` (halten) | Sprache → Text (lokal oder OpenAI Whisper) |
-| **Blitztext+** | Tray-Menü | Transkript → sauber umgeschrieben (GPT-4o-mini) |
-| **Blitztext $%&!** | Tray-Menü | Frust-Diktat → ruhige Nachricht (GPT-4o) |
+| **Blitztext+** | Tray-Menü | Transkript → sauber umgeschrieben (GPT-6 Luna) |
+| **Blitztext $%&!** | Tray-Menü | Frust-Diktat → ruhige Nachricht (GPT-6.1 Terra) |
 | **Blitztext :)** | Tray-Menü | Transkript + passende Emojis |
 | Abbrechen | `Esc` | laufende Aufnahme/Verarbeitung stoppen |
 

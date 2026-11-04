@@ -301,7 +301,7 @@ public sealed class AppController : INotifyPropertyChanged, IDisposable
         string? apiKey = CredentialStore.LoadApiKey();
         bool useLocal = type == WorkflowType.LocalTranscription || _settings.App.SecureLocalModeEnabled;
         var vocab = duration >= 0.9 ? _settings.TextImprovement.CustomTerms : new List<string>();
-        Platform.Log.Write($"transcribe: type={type} backend={(useLocal ? "local:" + SelectedLocalModelName : "remote:whisper-1")} dur={duration:F2}s terms={vocab.Count}");
+        Platform.Log.Write($"transcribe: type={type} backend={(useLocal ? "local:" + SelectedLocalModelName : "remote:gpt-transcribe")} dur={duration:F2}s terms={vocab.Count}");
 
         string raw;
         if (useLocal)

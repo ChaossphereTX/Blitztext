@@ -3,13 +3,13 @@ using System.Net.Http.Headers;
 namespace Blitztext.Core.OpenAi;
 
 /// <summary>
-/// Calls the OpenAI Audio Transcriptions API (whisper-1). Faithful port of the macOS
+/// Calls the OpenAI Audio Transcriptions API (gpt-transcribe).
 /// TranscriptionService: same endpoint, multipart fields (model, response_format=text,
 /// optional prompt and language) and error handling.
 /// </summary>
 public sealed class OpenAiTranscriptionClient
 {
-    private const string RemoteModel = "whisper-1";
+    private const string RemoteModel = "gpt-transcribe";
     private const string TranscriptionsUrl = "https://api.openai.com/v1/audio/transcriptions";
 
     private readonly HttpClient _http;

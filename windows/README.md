@@ -13,8 +13,8 @@ optional umgeschrieben und per simuliertem `Strg+V` in das zuvor aktive Fenster 
 | Workflow | Start | Beschreibung |
 |---|---|---|
 | **Blitztext** | `Strg + Umschalt` (halten) | Sprache → Text (OpenAI Whisper oder lokal) |
-| **Blitztext+** | Tray-Menü | Transkript → sauber umgeschriebener Text (GPT-4o-mini) |
-| **Blitztext $%&!** | Tray-Menü | Frust-Diktat → ruhige, sachliche Nachricht (GPT-4o) |
+| **Blitztext+** | Tray-Menü | Transkript → sauber umgeschriebener Text (GPT-6 Luna) |
+| **Blitztext $%&!** | Tray-Menü | Frust-Diktat → ruhige, sachliche Nachricht (GPT-6.1 Terra) |
 | **Blitztext :)** | Tray-Menü | Transkript + passende Emojis |
 | Abbrechen | `Esc` | Laufende Aufnahme/Verarbeitung abbrechen |
 
@@ -59,7 +59,7 @@ windows/
 - Windows 10/11 (x64)
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (`dotnet --version` ≥ 8.0)
 - Mikrofon (Windows-Datenschutz: Mikrofonzugriff für Desktop-Apps erlauben)
-- Für Online-Workflows: eigener **OpenAI API Key** mit Zugriff auf `whisper-1`, `gpt-4o-mini`, `gpt-4o`
+- Für Online-Workflows: eigener **OpenAI API Key** mit Zugriff auf `gpt-transcribe`, `gpt-6-luna` und `gpt-6.1-terra`
 - Für den lokalen Modus: ein GGML-Modell – wird **in der App** per Klick heruntergeladen
   (gespeichert unter `%APPDATA%\Blitztext\models\whisper`)
 
@@ -203,6 +203,7 @@ aus dem Roaming-Profil des betroffenen Nutzers einzusammeln.
   laufenden Zielprogrammen kann das Einfügen blockiert sein (UIPI); der Text liegt dann als
   Fallback in der Zwischenablage (`Strg+V` manuell).
 - Globale Hotkeys belegen die `Strg+Umschalt`-Chords systemweit, solange Blitztext läuft.
-- Lokale Transkription läuft per Whisper.net auf der **CPU**. Größere Modelle (Large) sind
-  entsprechend langsamer; **Small** ist als schneller Standard voreingestellt.
+- Lokale Transkription läuft per Whisper.net auf der **CPU**. Das voreingestellte
+  `large-v3-turbo-q5_0` ist quantisiert und bietet einen guten Qualitäts-/Geschwindigkeitskompromiss;
+  unquantisierte Large-Modelle sind entsprechend langsamer.
 - Kein automatischer Update-Feed (wie im macOS-Original): neue Versionen selbst bauen.

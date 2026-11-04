@@ -21,15 +21,15 @@ public static class LocalModelCatalog
 {
     private const string Repo = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main";
 
-    /// <summary>Default fast model (small footprint, good quality) — mirrors macOS "recommendedFast".</summary>
-    public const string RecommendedFastModelName = "small";
+    /// <summary>Default model: quantized Large v3 Turbo for a strong CPU quality/speed balance.</summary>
+    public const string RecommendedFastModelName = "large-v3-turbo-q5_0";
 
     public static readonly IReadOnlyList<LocalModelInfo> All = new[]
     {
         new LocalModelInfo("tiny", "Whisper Tiny", $"{Repo}/ggml-tiny.bin", 77_700_000),
         new LocalModelInfo("base", "Whisper Base", $"{Repo}/ggml-base.bin", 147_900_000),
         new LocalModelInfo("small", "Whisper Small", $"{Repo}/ggml-small.bin", 487_600_000),
-        new LocalModelInfo("large-v3-turbo", "Whisper Large v3 Turbo", $"{Repo}/ggml-large-v3-turbo.bin", 1_624_000_000),
+        new LocalModelInfo("large-v3-turbo-q5_0", "Whisper Large v3 Turbo Q5", $"{Repo}/ggml-large-v3-turbo-q5_0.bin", 574_000_000),
         new LocalModelInfo("large-v3", "Whisper Large v3", $"{Repo}/ggml-large-v3.bin", 3_095_000_000),
     };
 
